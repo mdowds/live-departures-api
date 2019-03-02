@@ -1,5 +1,8 @@
 package com.mdowds.livedeparturesapi
 
+import com.mdowds.livedeparturesapi.datasource.tfl.TflArrivalPrediction
+import com.mdowds.livedeparturesapi.datasource.tfl.TflStopPoint
+
 data class Departure(val line: String, val destination: String, val departureTime: String, val mode: Mode?, val direction: String, val platform: String, val isTerminating: Boolean) {
 
     constructor(tflArrivalPrediction: TflArrivalPrediction) : this(
@@ -37,6 +40,8 @@ enum class Mode(val id: String) {
     }
 }
 
+data class Location(val lat: Double, val long: Double)
+
 private fun convertStationName(name: String): String {
     return listOf(" Rail Station", " Underground Station", " DLR Station", " (London)")
             .fold(name) { currentName, textToReplace ->
@@ -55,6 +60,7 @@ private fun extractDirection(platformName: String): String {
         else -> ""
     }
 }
+
 private fun extractPlatform(platformName: String): String {
     return when {
         platformName.contains(" -") -> platformName.substring(platformName.indexOf(" -") + 3)

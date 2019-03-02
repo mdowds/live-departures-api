@@ -1,9 +1,10 @@
-package com.mdowds.livedeparturesapi
+package com.mdowds.livedeparturesapi.datasource.tfl
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.result.Result
+import com.mdowds.livedeparturesapi.Location
 import com.mdowds.livedeparturesapi.config.Config
 import com.mdowds.livedeparturesapi.config.tflAppId
 import com.mdowds.livedeparturesapi.config.tflAppKey

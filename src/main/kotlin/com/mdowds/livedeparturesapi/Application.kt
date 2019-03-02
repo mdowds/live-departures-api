@@ -1,11 +1,12 @@
 package com.mdowds.livedeparturesapi
 
-import com.google.gson.Gson
-import com.google.gson.JsonObject
 import io.javalin.Javalin
 import io.javalin.websocket.WsSession
 import java.util.concurrent.ConcurrentHashMap
 import com.google.gson.JsonParser
+import com.mdowds.livedeparturesapi.datasource.tfl.TflApi
+import com.mdowds.livedeparturesapi.message.LocationMessage
+import com.mdowds.livedeparturesapi.message.ModeMessage
 import mu.KotlinLogging
 
 
@@ -64,25 +65,3 @@ fun handleModeMessage(message: ModeMessage, session: WsSession) {
 fun sendMessage(session: WsSession, message: String) {
     session.send(message)
 }
-
-data class LocationMessage(val location: Location)  {
-    companion object {
-        fun fromJson(jsonObject: JsonObject): LocationMessage {
-            return Gson().fromJson<LocationMessage>(jsonObject, LocationMessage::class.java)
-        }
-    }
-}
-
-data class ModeMessage(val mode: String)  {
-    companion object {
-        fun fromJson(jsonObject: JsonObject): ModeMessage {
-            return Gson().fromJson<ModeMessage>(jsonObject, ModeMessage::class.java)
-        }
-    }
-}
-
-data class Location(val lat: Double, val long: Double)
-
-data class ResponseMessage<T>(val type: String, val message: T)
-data class StopPointsResponse(val stopPoints: List<StopPoint>, val modes: List<Mode>)
-data class DeparturesResponse(val stopId: String, val departures: List<Departure>)

@@ -1,6 +1,13 @@
 package com.mdowds.livedeparturesapi
 
 import com.google.gson.Gson
+import com.mdowds.livedeparturesapi.datasource.tfl.TflApi
+import com.mdowds.livedeparturesapi.datasource.tfl.TflArrivalPrediction
+import com.mdowds.livedeparturesapi.datasource.tfl.TflStopPoint
+import com.mdowds.livedeparturesapi.datasource.tfl.TflStopPoints
+import com.mdowds.livedeparturesapi.message.DeparturesResponse
+import com.mdowds.livedeparturesapi.message.ResponseMessage
+import com.mdowds.livedeparturesapi.message.StopPointsResponse
 import io.javalin.websocket.WsSession
 import java.util.*
 
