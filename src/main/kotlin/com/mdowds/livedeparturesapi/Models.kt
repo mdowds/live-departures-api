@@ -21,7 +21,7 @@ data class StopPoint(val name: String, val stopId: String, val indicator: String
             convertStationName(tflStopPoint.commonName),
             tflStopPoint.naptanId,
             tflStopPoint.indicator,
-            tflStopPoint.modes.mapNotNull{ Mode.fromModeId(it) }
+            tflStopPoint.modes.mapNotNull{ Mode.fromModeId(it) }.sorted()
     )
 }
 
