@@ -1,6 +1,6 @@
 {
   "$type": "Tfl.Api.Presentation.Entities.PlacesResponse, Tfl.Api.Presentation.Entities",
-  "centrePoint": [ 51.0, 0.0 ],
+  "centrePoint": [ 51.515286, -0.142016 ],
   "places": [
     {
       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",

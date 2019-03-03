@@ -1,5 +1,7 @@
-package com.mdowds.livedeparturesapi
+package com.mdowds.livedeparturesapi.helpers
 
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import okhttp3.*
 import java.util.concurrent.TimeUnit
 
@@ -25,7 +27,10 @@ class WebSocketClient : WebSocketListener() {
     var isOpen = false
         private set
 
-    val messages = mutableListOf<String>()
+    val messages = mutableListOf<JsonObject>()
+
+    fun lastMessageOfType(type: String): JsonObject? = messages.findLast { it.get("type").asString == type }
+    fun messagesOfType(type: String): List<JsonObject> = messages.filter { it.get("type").asString == type }
 
     fun sendLocation(lat: Double, long: Double) {
         send("""
@@ -50,7 +55,7 @@ class WebSocketClient : WebSocketListener() {
     }
 
     override fun onMessage(webSocket: WebSocket, text: String) {
-        messages.add(text)
+        messages.add(JsonParser().parse(text).asJsonObject)
     }
 
     override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
