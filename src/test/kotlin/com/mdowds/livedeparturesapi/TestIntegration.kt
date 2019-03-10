@@ -21,13 +21,14 @@ class TestIntegration {
     private lateinit var client: WebSocketClient
     private lateinit var mockTflApi: WireMockServer
 
-    private val arrivalsPath = "/StopPoint/[\\w\\d]+/Arrivals";
+    private val arrivalsPath = "/StopPoint/[\\w\\d]+/Arrivals"
 
     @BeforeEach
     fun setUp() {
         System.setProperty("live-departures.tfl-api.base-url", "http://localhost:8089")
         System.setProperty("live-departures.tfl-api.app-id", "abc123")
         System.setProperty("live-departures.tfl-api.app-key", "abcde12345")
+        System.setProperty("live-departures.values.arrivals-fetch-delay-seconds", "1")
 
         app = start()
         client = WebSocketClient.connect()
@@ -146,6 +147,20 @@ class TestIntegration {
                 assertThat(departures.size()).isGreaterThan(0)
             }
         }
+
+        @Test
+        fun `it should not send the arrivals to the client if they haven't changed`(){
+            stubStopPointsResponse()
+            stubArrivalsResponse("940GZZLUOXC")
+            stubArrivalsResponse("490000173RG")
+            client.sendLocation(51.515286, -0.142016)
+
+            waitFor { requestsFor(arrivalsPath).count() == 4 }
+            // TODO have to sleep here to give a chance for duplicate messages to send - find alternative
+            Thread.sleep(1000L)
+
+            assertThat(client.messagesOfType("DEPARTURES")).hasSize(2)
+        }
     }
 
 
@@ -172,9 +187,11 @@ class TestIntegration {
 
 private const val TIMEOUT = 5000L
 
-fun waitFor(condition: () -> Boolean) {
+fun waitFor(condition: () -> Boolean) = waitFor(TIMEOUT, condition)
+
+fun waitFor(timeout: Long, condition: () -> Boolean) {
     val startTime = System.currentTimeMillis()
-    val isTimedOut = { System.currentTimeMillis() - startTime > TIMEOUT }
+    val isTimedOut = { System.currentTimeMillis() - startTime > timeout }
     while (!condition() && !isTimedOut()) {
         Thread.sleep(10L)
     }
