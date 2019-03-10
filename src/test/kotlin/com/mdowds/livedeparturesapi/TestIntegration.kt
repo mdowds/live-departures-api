@@ -124,7 +124,6 @@ class TestIntegration {
     @Nested
     inner class `On arrivals response`{
         @Test
-        @Disabled
         fun `it should send the arrivals to the client`(){
             stubStopPointsResponse()
             stubArrivalsResponse("940GZZLUOXC")
@@ -135,9 +134,16 @@ class TestIntegration {
 
             val messages = client.messagesOfType("DEPARTURES")
             assertThat(messages).anySatisfy {
-                val departures = it.messageData.getAsJsonArray("departures")
-
                 assertThat(it.messageData).hasProperty("stopId" to "940GZZLUOXC")
+            }
+
+            assertThat(messages).anySatisfy {
+                assertThat(it.messageData).hasProperty("stopId" to "490000173RG")
+            }
+
+            assertThat(messages).allSatisfy {
+                val departures = it.messageData.getAsJsonArray("departures")
+                assertThat(departures.size()).isGreaterThan(0)
             }
         }
     }
