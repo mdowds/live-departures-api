@@ -23,12 +23,15 @@ fun start() : Javalin {
     app.get("/") { ctx -> ctx.result("Application running") }
     app.ws("/socket") { ws ->
         ws.onConnect { session ->
-            logger.info { "Connection received" }
+            logger.info { "Connection received ${session.id}" }
             session.send(Gson().toJson(ResponseMessage(STATUS, "Connection acknowledged")))
         }
-        ws.onClose { _, _, _ -> logger.info { "Connection closed" } }
+        ws.onClose { session, _, _ ->
+            logger.info { "Connection closed ${session.id}" }
+            handleClose(session)
+        }
         ws.onMessage { session, message ->
-            logger.info { "Message received" }
+            logger.info { "Message received ${session.id}" }
             handle(message, session)
         }
     }

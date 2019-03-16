@@ -50,6 +50,10 @@ class WebSocketClient : WebSocketListener() {
         webSocket.send(message)
     }
 
+    fun close() {
+        webSocket.close(1000, null)
+    }
+
     override fun onOpen(webSocket: WebSocket, response: Response) {
         isOpen = true
     }

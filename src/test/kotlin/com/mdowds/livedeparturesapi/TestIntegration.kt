@@ -5,9 +5,8 @@ package com.mdowds.livedeparturesapi
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.verification.LoggedRequest
-import com.mdowds.livedeparturesapi.helpers.WebSocketClient
+import com.mdowds.livedeparturesapi.helpers.*
 import com.mdowds.livedeparturesapi.helpers.assertThat
-import com.mdowds.livedeparturesapi.helpers.messageData
 import org.assertj.core.api.Assertions.assertThat
 import io.javalin.Javalin
 import org.junit.jupiter.api.*
@@ -24,7 +23,7 @@ class TestIntegration {
     private val arrivalsPath = "/StopPoint/[\\w\\d]+/Arrivals"
 
     @BeforeEach
-    fun setUp() {
+    fun beforeEach() {
         System.setProperty("live-departures.tfl-api.base-url", "http://localhost:8089")
         System.setProperty("live-departures.tfl-api.app-id", "abc123")
         System.setProperty("live-departures.tfl-api.app-key", "abcde12345")
@@ -37,7 +36,8 @@ class TestIntegration {
     }
 
     @AfterEach
-    fun tearDown() {
+    fun afterEach() {
+        client.close()
         app.stop()
         mockTflApi.stop()
     }
@@ -151,15 +151,52 @@ class TestIntegration {
         @Test
         fun `it should not send the arrivals to the client if they haven't changed`(){
             stubStopPointsResponse()
+
+            mockTflApi.stubFor(get(urlPathMatching("/StopPoint/940GZZLUOXC/Arrivals"))
+                    .stubFirstRequest("Arrivals change")
+                    .willReturn(aResponse()
+                            .withBodyFile("arrivals/940GZZLUOXC.json")
+                    )
+            )
+
+            mockTflApi.stubFor(get(urlPathMatching("/StopPoint/940GZZLUOXC/Arrivals"))
+                    .stubSecondRequest("Arrivals change")
+                    .willReturn(aResponse()
+                            .withBodyFile("arrivals/940GZZLUOXC.json")
+                    )
+            )
+
+            mockTflApi.stubFor(get(urlPathMatching("/StopPoint/940GZZLUOXC/Arrivals"))
+                    .stubThirdRequest("Arrivals change")
+                    .willReturn(aResponse()
+                            .withBodyFile("arrivals/940GZZLUOXC_2.json")
+                    )
+            )
+
+            stubArrivalsResponse("490000173RG")
+            client.sendLocation(51.515286, -0.142016)
+
+            waitFor { requestsFor(arrivalsPath).count() == 6 }
+            waitFor { client.messagesOfType("DEPARTURES").count() == 3 }
+
+            assertThat(client.messagesOfType("DEPARTURES")).hasSize(3)
+            assertThat(requestsFor(arrivalsPath)).hasSize(6)
+        }
+    }
+
+    @Nested
+    inner class `On connection closed`{
+        @Test
+        fun `it should not make further requests`(){
+            stubStopPointsResponse()
             stubArrivalsResponse("940GZZLUOXC")
             stubArrivalsResponse("490000173RG")
             client.sendLocation(51.515286, -0.142016)
 
-            waitFor { requestsFor(arrivalsPath).count() == 4 }
-            // TODO have to sleep here to give a chance for duplicate messages to send - find alternative
-            Thread.sleep(1000L)
-
-            assertThat(client.messagesOfType("DEPARTURES")).hasSize(2)
+            waitFor { requestsFor(arrivalsPath).count() == 2 }
+            client.close()
+            Thread.sleep(1100)
+            assertThat(requestsFor(arrivalsPath)).hasSize(2)
         }
     }
 
@@ -174,7 +211,7 @@ class TestIntegration {
 
     private fun stubArrivalsResponse(stopPointId: String? = null) {
         val fileName = stopPointId ?: "940GZZLUOXC"
-        mockTflApi.stubFor(get(urlPathMatching(arrivalsPath))
+        mockTflApi.stubFor(get(urlPathMatching("/StopPoint/$stopPointId/Arrivals"))
                 .willReturn(aResponse()
                         .withBodyFile("arrivals/$fileName.json")
                 )

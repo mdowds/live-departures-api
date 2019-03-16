@@ -8,6 +8,7 @@ import com.mdowds.livedeparturesapi.message.DeparturesResponse
 import com.mdowds.livedeparturesapi.message.ResponseMessage
 import io.javalin.websocket.WsSession
 import io.reactivex.Observable
+import io.reactivex.disposables.Disposable
 import mu.KotlinLogging
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -20,12 +21,14 @@ private val logger = KotlinLogging.logger {}
 
 
 class DeparturesSession(private val session: WsSession, private val stopPoints: List<StopPoint>) {
+    var requests = emptyList<Disposable>()
+
     fun startUpdatesForMode(mode: Mode) {
         val requestArrivalsFor = stopPoints
                 .filter { it.modes.contains(mode) }
                 .map{ it.stopId }
 
-        requestArrivalsFor.forEach {stopPointId ->
+        requests = requestArrivalsFor.map {stopPointId ->
             Observable.interval(0, Config.get(arrivalsFetchDelay), TimeUnit.SECONDS)
                     .map { fetch(stopPointId) }
                     .distinct()
@@ -33,7 +36,7 @@ class DeparturesSession(private val session: WsSession, private val stopPoints: 
                     .map { arrivalPredictions -> arrivalPredictions.map { Departure(it) } }
                     .subscribe(
                             { onNextDepartures(stopPointId, it)},
-                            { logError(stopPointId) }
+                            { logError(stopPointId, it) }
                     )
         }
     }
@@ -57,18 +60,17 @@ class DeparturesSession(private val session: WsSession, private val stopPoints: 
             override fun writeSuccess() =
                     logger.info { "New departures for $stopPointId sent to ${session.id}" }
 
-            override fun writeFailed(x: Throwable?) =
-                    logError(stopPointId)
+            override fun writeFailed(err: Throwable?) =
+                    logError(stopPointId, err)
         }
         session.remote.sendString(Gson().toJson(responseMessage), callback)
     }
 
-    private fun logError(stopPointId: String) =
-            logger.error { "Error sending departures for $stopPointId to ${session.id}" }
+    private fun logError(stopPointId: String, err: Throwable?) =
+            logger.error { "Error sending departures for $stopPointId to ${session.id}: $err" }
 
 
     fun stopUpdates() {
-        // See https://medium.com/@benlesh/rxjs-dont-unsubscribe-6753ed4fda87 for stopping
-//        arrivalRequestsTimer?.cancel()
+        requests.forEach{ it.dispose() }
     }
 }
