@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket test</title>
+</head>
+<body>
+
+<button id="connect">Connect</button>
+<br />
+
+<div>
+    <input id="lat" placeholder="Latitude" value="51.515286">
+    <input id="long" placeholder="Longitude" value="-0.142016">
+    <button id="send_location">Send</button>
+</div>
+
+<div>
+    <select id="mode">
+        <option value="bus">bus</option>
+        <option value="tube">tube</option>
+    </select>
+    <button id="send_mode">Send</button>
+</div>
+
+<div id="messages"></div>
+
+<script type="text/javascript">
+  let ws;
+
+  function connect() {
+    ws = new WebSocket("ws://localhost:7000/socket");
+    ws.onmessage = msg => {
+      console.log(msg);
+      const p = document.createElement("p");
+      const msgData = document.createTextNode(msg.data);
+      p.appendChild(msgData);
+      document.getElementById("messages").appendChild(p);
+    };
+    ws.onclose = () => console.log("WebSocket connection closed");
+  }
+
+  document.getElementById("connect").addEventListener("click", connect);
+
+  document.getElementById("send_location").addEventListener("click", () => {
+    const message = {
+      type: "LOCATION",
+      message: {
+        location: {
+          lat: document.getElementById("lat").value,
+          long: document.getElementById("long").value
+        }
+      }
+    };
+    ws.send(JSON.stringify(message));
+  });
+
+  document.getElementById("send_mode").addEventListener("click", () => {
+    const message = {
+      type: "MODE",
+      message: {
+        mode: document.getElementById("mode").value,
+      }
+    };
+    ws.send(JSON.stringify(message));
+  });
+
+  connect();
+</script>
+
+</body>
+</html>
