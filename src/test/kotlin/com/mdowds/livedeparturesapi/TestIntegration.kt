@@ -3,6 +3,7 @@
 package com.mdowds.livedeparturesapi
 
 import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.verification.LoggedRequest
 import com.mdowds.livedeparturesapi.helpers.*
@@ -131,18 +132,17 @@ class TestIntegration {
             stubArrivalsResponse("490000173RG")
             client.sendLocation(51.515286, -0.142016)
 
-            waitFor { client.messagesOfType("DEPARTURES").count() == 2 }
+            waitFor { client.departuresMessages.count() == 2 }
 
-            val messages = client.messagesOfType("DEPARTURES")
-            assertThat(messages).anySatisfy {
+            assertThat(client.departuresMessages).anySatisfy {
                 assertThat(it.messageData).hasProperty("stopId" to "940GZZLUOXC")
             }
 
-            assertThat(messages).anySatisfy {
+            assertThat(client.departuresMessages).anySatisfy {
                 assertThat(it.messageData).hasProperty("stopId" to "490000173RG")
             }
 
-            assertThat(messages).allSatisfy {
+            assertThat(client.departuresMessages).allSatisfy {
                 val departures = it.messageData.getAsJsonArray("departures")
                 assertThat(departures.size()).isGreaterThan(0)
             }
@@ -177,9 +177,9 @@ class TestIntegration {
             client.sendLocation(51.515286, -0.142016)
 
             waitFor { requestsFor(arrivalsPath).count() == 6 }
-            waitFor { client.messagesOfType("DEPARTURES").count() == 3 }
+            waitFor { client.departuresMessages.count() == 3 }
 
-            assertThat(client.messagesOfType("DEPARTURES")).hasSize(3)
+            assertThat(client.departuresMessages).hasSize(3)
             assertThat(requestsFor(arrivalsPath)).hasSize(6)
         }
     }
@@ -200,6 +200,56 @@ class TestIntegration {
         }
     }
 
+    @Nested
+    inner class `On mode change`{
+        @Test
+        fun `it should start sending departures for the correct stops`(){
+            stubStopPointsResponse()
+            stubArrivalsResponse("940GZZLUOXC")
+            stubArrivalsResponse("490000173RG")
+            client.sendLocation(51.515286, -0.142016)
+
+            waitFor { client.departuresMessages.count() == 2 }
+
+            assertThat(client.departuresMessages).anySatisfy {
+                assertThat(it.messageData).hasProperty("stopId" to "940GZZLUOXC")
+            }
+
+            assertThat(client.departuresMessages).anySatisfy {
+                assertThat(it.messageData).hasProperty("stopId" to "490000173RG")
+            }
+
+            client.clearMessages()
+            client.sendMode("tube")
+
+            waitFor { client.departuresMessages.count() == 1 }
+
+            assertThat(client.departuresMessages).allSatisfy {
+                assertThat(it.messageData).hasProperty("stopId" to "940GZZLUOXC")
+            }
+        }
+
+        @Test
+        fun `it should stop making requests for stops of the previous mode`(){
+            stubStopPointsResponse()
+            stubArrivalsResponse("940GZZLUOXC")
+            stubArrivalsResponse("490000173RG")
+            client.sendLocation(51.515286, -0.142016)
+
+            waitFor { client.departuresMessages.count() == 2 }
+            client.sendMode("tube")
+
+            waitFor { requestsFor(arrivalsPath).count() == 3 }
+
+            mockTflApi.verify(2, getRequestedFor(urlPathEqualTo("/StopPoint/940GZZLUOXC/Arrivals")))
+            mockTflApi.verify(1, getRequestedFor(urlPathEqualTo("/StopPoint/490000173RG/Arrivals")))
+        }
+    }
+
+    @Nested
+    inner class `On location change`{
+
+    }
 
     private fun stubStopPointsResponse() {
         mockTflApi.stubFor(get(urlPathEqualTo("/Place"))

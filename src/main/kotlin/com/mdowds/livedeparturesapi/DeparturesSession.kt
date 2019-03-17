@@ -24,6 +24,8 @@ class DeparturesSession(private val session: WsSession, private val stopPoints: 
     var requests = emptyList<Disposable>()
 
     fun startUpdatesForMode(mode: Mode) {
+        if(!requests.isEmpty()) stopUpdates()
+
         val requestArrivalsFor = stopPoints
                 .filter { it.modes.contains(mode) }
                 .map{ it.stopId }

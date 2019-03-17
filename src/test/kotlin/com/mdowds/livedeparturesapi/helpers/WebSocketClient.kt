@@ -29,11 +29,15 @@ class WebSocketClient : WebSocketListener() {
 
     val messages = mutableListOf<JsonObject>()
 
+    val departuresMessages: List<JsonObject>
+        get() = messagesOfType("DEPARTURES")
+
     fun lastMessageOfType(type: String): JsonObject? = messages.findLast { it.get("type").asString == type }
-    fun messagesOfType(type: String): List<JsonObject> = messages.filter { it.get("type").asString == type }
+
+    fun clearMessages() = messages.clear()
 
     fun sendLocation(lat: Double, long: Double) {
-        send("""
+        webSocket.send("""
             {
               type: "LOCATION",
               message: {
@@ -46,8 +50,16 @@ class WebSocketClient : WebSocketListener() {
         """)
     }
 
-    fun send(message: String) {
-        webSocket.send(message)
+    fun sendMode(mode: String) {
+        webSocket.send("""
+            {
+              type: "MODE",
+              message: {
+                mode: $mode
+              }
+            }
+        """)
+
     }
 
     fun close() {
@@ -70,6 +82,10 @@ class WebSocketClient : WebSocketListener() {
     override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
         println("Error!")
     }
+
+    private fun messagesOfType(type: String): List<JsonObject> =
+            messages.filter { it.get("type").asString == type }
+
 
 
 }
