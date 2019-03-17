@@ -85,7 +85,4 @@ class WebSocketClient : WebSocketListener() {
 
     private fun messagesOfType(type: String): List<JsonObject> =
             messages.filter { it.get("type").asString == type }
-
-
-
 }

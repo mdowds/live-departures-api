@@ -116,7 +116,7 @@ class TestIntegration {
             stubArrivalsResponse()
             client.sendLocation(51.515286, -0.142016)
 
-            waitFor { requestsFor(arrivalsPath).count() > 0 }
+            waitFor { requestsFor(arrivalsPath).count() == 2 }
 
             mockTflApi.verify(getRequestedFor(urlPathEqualTo("/StopPoint/940GZZLUOXC/Arrivals")))
             mockTflApi.verify(getRequestedFor(urlPathEqualTo("/StopPoint/490000173RG/Arrivals")))
