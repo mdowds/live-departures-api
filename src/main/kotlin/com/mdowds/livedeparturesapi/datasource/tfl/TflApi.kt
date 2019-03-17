@@ -25,7 +25,7 @@ object TflApi {
     }
 
     fun getArrivals(stopPointId: String): List<TflArrivalPrediction> {
-        val endpoint = "/StopPoint/$stopPointId/Arrivals?app_id=${Config.get(tflAppId)}&app_key=${Config.get(tflAppKey)}"
+        val endpoint = "/StopPoint/$stopPointId/Arrivals"
         val response = makeGetRequest(endpoint)
         return Gson().fromJson<List<TflArrivalPrediction>>(
                 response, object : TypeToken<List<TflArrivalPrediction>>() {}.type
