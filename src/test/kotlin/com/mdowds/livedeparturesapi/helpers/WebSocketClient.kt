@@ -29,6 +29,9 @@ class WebSocketClient : WebSocketListener() {
 
     val messages = mutableListOf<JsonObject>()
 
+    val stopPointsMessages: List<JsonObject>
+        get() = messagesOfType("STOP_POINTS")
+
     val departuresMessages: List<JsonObject>
         get() = messagesOfType("DEPARTURES")
 

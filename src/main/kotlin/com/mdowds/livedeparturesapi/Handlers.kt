@@ -28,6 +28,9 @@ fun handleClose(session: WsSession) {
 }
 
 private fun handleLocationMessage(message: LocationMessage, session: WsSession) {
+    val existingSession = sessionMap[session]
+    existingSession?.stopUpdates()
+
     val tflStopPoints = TflApi.getNearbyStops(message.location, 500)
     val stopPoints = tflStopPoints.places.map { StopPoint(it) }
     val departuresSession = DeparturesSession(session, stopPoints)

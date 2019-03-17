@@ -248,20 +248,76 @@ class TestIntegration {
 
     @Nested
     inner class `On location change`{
+        @Test
+        fun `it should send stops for the new location`(){
+            stubStopPointsResponse()
+            client.sendLocation(51.515286, -0.142016)
+            waitFor { client.stopPointsMessages.count() == 1 }
 
+            client.sendLocation(51.514401, -0.148935)
+            waitFor { client.stopPointsMessages.count() == 2 }
+
+            val message = client.lastMessageOfType("STOP_POINTS")
+            val firstStopPoint = message?.messageData?.getAsJsonArray("stopPoints")?.get(0)?.asJsonObject
+            val secondStopPoint = message?.messageData?.getAsJsonArray("stopPoints")?.get(1)?.asJsonObject
+
+            assertThat(message?.messageData)
+                    .hasProperty("modes" to listOf("Bus", "Tube"))
+            assertThat(firstStopPoint).hasChildren(
+                    "name" to "Bond Street",
+                    "stopId" to "490000025BV",
+                    "indicator" to "Stop BV",
+                    "modes" to listOf("Bus")
+            )
+            assertThat(secondStopPoint).hasChildren(
+                    "name" to "Bond Street",
+                    "stopId" to "940GZZLUBND",
+                    "modes" to listOf("Bus", "Tube")
+            )
+        }
+
+        @Test
+        fun `it should stop making requests for stops of the previous location`(){
+            stubStopPointsResponse()
+            stubArrivalsResponse("940GZZLUOXC")
+            stubArrivalsResponse("490000173RG")
+            stubArrivalsResponse("490000025BV")
+            stubArrivalsResponse("940GZZLUBND")
+            client.sendLocation(51.515286, -0.142016)
+
+            waitFor { client.departuresMessages.count() == 2 }
+            client.sendLocation(51.514401, -0.148935)
+
+            waitFor { requestsFor(arrivalsPath).count() == 4 }
+
+            mockTflApi.verify(1, getRequestedFor(urlPathEqualTo("/StopPoint/940GZZLUOXC/Arrivals")))
+            mockTflApi.verify(1, getRequestedFor(urlPathEqualTo("/StopPoint/490000173RG/Arrivals")))
+            mockTflApi.verify(1, getRequestedFor(urlPathEqualTo("/StopPoint/490000025BV/Arrivals")))
+            mockTflApi.verify(1, getRequestedFor(urlPathEqualTo("/StopPoint/940GZZLUBND/Arrivals")))
+        }
     }
 
     private fun stubStopPointsResponse() {
         mockTflApi.stubFor(get(urlPathEqualTo("/Place"))
+                .withQueryParam("lat", equalTo("51.515286"))
+                .withQueryParam("lon", equalTo("-0.142016"))
                 .willReturn(aResponse()
                         .withBodyFile("stop-points-response.json")
+                )
+        )
+
+        mockTflApi.stubFor(get(urlPathEqualTo("/Place"))
+                .withQueryParam("lat", equalTo("51.514401"))
+                .withQueryParam("lon", equalTo("-0.148935"))
+                .willReturn(aResponse()
+                        .withBodyFile("stop-points-response_2.json")
                 )
         )
     }
 
     private fun stubArrivalsResponse(stopPointId: String? = null) {
         val fileName = stopPointId ?: "940GZZLUOXC"
-        mockTflApi.stubFor(get(urlPathMatching("/StopPoint/$stopPointId/Arrivals"))
+        mockTflApi.stubFor(get(urlPathEqualTo("/StopPoint/$stopPointId/Arrivals"))
                 .willReturn(aResponse()
                         .withBodyFile("arrivals/$fileName.json")
                 )
