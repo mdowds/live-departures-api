@@ -2,68 +2,45 @@ package com.mdowds.livedeparturesapi.datasource.tfl
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.result.Result
 import com.mdowds.livedeparturesapi.Location
 import com.mdowds.livedeparturesapi.config.Config
 import com.mdowds.livedeparturesapi.config.tflAppId
 import com.mdowds.livedeparturesapi.config.tflAppKey
 import com.mdowds.livedeparturesapi.config.tflBaseUrl
 import mu.KotlinLogging
-
-typealias ArrivalsCallback = (List<TflArrivalPrediction>) -> Unit
-typealias NearbyStopsCallback = (TflStopPoints) -> Unit
-typealias ErrorCallback = (Exception) -> Unit
-typealias Params = List<Pair<String, String>>
+import okhttp3.OkHttpClient
+import okhttp3.Request
 
 private val logger = KotlinLogging.logger {}
 
 object TflApi {
-
     private const val tflStopTypes = "NaptanMetroStation,NaptanRailStation,NaptanPublicBusCoachTram,NaptanFerryPort"
 
-    fun getNearbyStops(location: Location, radius: Int, callback: NearbyStopsCallback, errorCallback: ErrorCallback? = null) {
-        val params = listOf(
-                "type" to tflStopTypes,
-                "lat" to location.lat.toString(),
-                "lon" to location.long.toString(),
-                "radius" to radius.toString()
+    private val client = OkHttpClient()
+
+    fun getNearbyStops(location: Location, radius: Int): TflStopPoints {
+        val endpoint = "/Place?type=$tflStopTypes&lat=${location.lat}&lon=${location.long}&radius=$radius"
+        val response = makeGetRequest(endpoint)
+        return Gson().fromJson<TflStopPoints>(response, TflStopPoints::class.java)
+    }
+
+    fun getArrivals(stopPointId: String): List<TflArrivalPrediction> {
+        val endpoint = "/StopPoint/$stopPointId/Arrivals?app_id=${Config.get(tflAppId)}&app_key=${Config.get(tflAppKey)}"
+        val response = makeGetRequest(endpoint)
+        return Gson().fromJson<List<TflArrivalPrediction>>(
+                response, object : TypeToken<List<TflArrivalPrediction>>() {}.type
         )
-
-        makeGetRequest("/Place", params, { response ->
-            val stopPoints = Gson().fromJson<TflStopPoints>(response, TflStopPoints::class.java)
-            callback(stopPoints)
-        }, errorCallback)
     }
 
-    fun getArrivals(stopPointId: String, callback: ArrivalsCallback, errorCallback: ErrorCallback? = null) {
-        val endpoint = "/StopPoint/$stopPointId/Arrivals"
+    private fun makeGetRequest(endpoint: String): String {
+        val separator = if (endpoint.contains("?")) "&" else "?"
+        val url = Config.get(tflBaseUrl) + endpoint + separator + "app_id=${Config.get(tflAppId)}&app_key=${Config.get(tflAppKey)}"
 
-        makeGetRequest(endpoint, emptyList(), { response ->
-            val responseModel = Gson().fromJson<List<TflArrivalPrediction>>(response, object : TypeToken<List<TflArrivalPrediction>>() {}.type)
-            callback(responseModel)
-        }, errorCallback)
+        logger.info { "GET $url" }
+        val request = Request.Builder().url(url).build()
+
+        val response = client.newCall(request).execute()
+        return response.body()!!.string()
     }
 
-    private fun makeGetRequest(endpoint: String, params: Params, responseCallback: (String) -> Unit, errorCallback: ErrorCallback?) {
-        val url = Config.get(tflBaseUrl) + endpoint
-        val fullParams = params + listOf("app_id" to Config.get(tflAppId), "app_key" to Config.get(tflAppKey))
-
-        logger.info { "GET $url?${fullParams.joinToString("&") { "${it.first}=${it.second}" }}" }
-
-        Fuel.get(url, fullParams).responseString { request, response, result ->
-            when (result) {
-                is Result.Failure -> {
-                    val exception = result.getException()
-                    logger.error(exception) { "Error getting $url" }
-                    if(errorCallback != null) {
-                        errorCallback(exception)
-                    }
-                }
-                is Result.Success -> {
-                    responseCallback(result.get())
-                }
-            }
-        }
-    }
 }

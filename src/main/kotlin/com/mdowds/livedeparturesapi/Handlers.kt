@@ -28,23 +28,22 @@ fun handleClose(session: WsSession) {
 }
 
 private fun handleLocationMessage(message: LocationMessage, session: WsSession) {
-    TflApi.getNearbyStops(message.location, 500, { tflStopPoints ->
-        val stopPoints = tflStopPoints.places.map { StopPoint(it) }
-        val departuresSession = DeparturesSession(session, stopPoints)
-        sessionMap[session] = departuresSession
+    val tflStopPoints = TflApi.getNearbyStops(message.location, 500)
+    val stopPoints = tflStopPoints.places.map { StopPoint(it) }
+    val departuresSession = DeparturesSession(session, stopPoints)
+    sessionMap[session] = departuresSession
 
-        val modes = stopPoints
-                .flatMap { it.modes }
-                .asSequence()
-                .distinct()
-                .sorted()
-                .toList()
+    val modes = stopPoints
+            .flatMap { it.modes }
+            .asSequence()
+            .distinct()
+            .sorted()
+            .toList()
 
-        departuresSession.startUpdatesForMode(modes.first())
+    departuresSession.startUpdatesForMode(modes.first())
 
-        val response = StopPointsResponse(stopPoints, modes)
-        session.send(Gson().toJson(ResponseMessage(STOP_POINTS, response)))
-    })
+    val response = StopPointsResponse(stopPoints, modes)
+    session.send(Gson().toJson(ResponseMessage(STOP_POINTS, response)))
 }
 
 private fun handleModeMessage(message: ModeMessage, session: WsSession) {
