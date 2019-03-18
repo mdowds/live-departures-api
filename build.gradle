@@ -28,7 +28,7 @@ dependencies {
     implementation 'io.reactivex.rxjava2:rxjava:2.2.7'
     testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.2.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.2.0'
-    testImplementation 'com.github.tomakehurst:wiremock-jre8:2.21.0'
+    testImplementation 'com.github.tomakehurst:wiremock-jre8:2.22.0'
     testImplementation 'org.assertj:assertj-core:3.11.1'
 }
 
