@@ -23,7 +23,7 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.8.5'
     implementation 'org.jetbrains.kotlin:kotlin-reflect'
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
-    implementation 'com.squareup.okhttp3:okhttp:3.14.2'
+    implementation 'com.squareup.okhttp3:okhttp:4.2.0'
     implementation 'com.natpryce:konfig:1.6.10.0'
     implementation 'io.reactivex.rxjava2:rxjava:2.2.10'
     testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.4.2'
