@@ -29,7 +29,7 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.4.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.2'
     testImplementation 'com.github.tomakehurst:wiremock-jre8:2.23.2'
-    testImplementation 'org.assertj:assertj-core:3.12.2'
+    testImplementation 'org.assertj:assertj-core:3.16.1'
 }
 
 compileKotlin {
